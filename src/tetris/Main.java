@@ -8,7 +8,7 @@ public class Main {
 
         int height = 20;
         int width = 10;
-        int speed = 750;
+        int speed = 2000;
 
         // patterns ░░ ▒▒ ▓▓ ▉▋ ▉▊ ▉▉
         String pixel = "▉▋";
@@ -24,12 +24,12 @@ public class Main {
         int center = centerOfFrame - centerOfShape;
         for (int s = 0; s < frame.length; s++) {
             for (int f = 0; f < shape[1].length; f++) {
-                frame[s][center + f] = shape[shape[1].length - 1][f];
+                frame[s][center + f] = shape[shape.length - 1][f];
             }
             for (int w = 0; w < shape.length - 1; w++) {
                 if (s > w) {
                     for (int f = 0; f < shape[1].length; f++) {
-                        frame[s - 1 - w][center + f] = shape[shape[1].length - 2 - w][f];
+                        frame[s - 1 - w][center + f] = shape[shape.length - 2 - w][f];
                     }
                 }
             }
@@ -52,7 +52,7 @@ public class Main {
             }
             System.out.println();
         }
-        TimeUnit.MILLISECONDS.sleep(50);
+        TimeUnit.MILLISECONDS.sleep(100);
     }
 
 
@@ -66,13 +66,15 @@ public class Main {
          *   ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓
          *     ▓▓  ▓▓    ▓▓    ▓▓          ▓▓      ▓▓
          * */
-        String[][] shape0 = {{"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}};
-        String[][] shape1 = {{"▓▓", "░░", "░░"}, {"▓▓", "▓▓", "░░"}, {"░░", "▓▓", "░░"}};
-        String[][] shape2 = {{"▓▓", "▓▓", "░░"}, {"▓▓", "░░", "░░"}, {"▓▓", "░░", "░░"}};
-        String[][] shape3 = {{"▓▓", "░░", "░░"}, {"▓▓", "▓▓", "░░"}, {"▓▓", "░░", "░░"}};
+        String[][] shape0 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
+        String[][] shape1 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"░░", "▓▓"}};
+        String[][] shape2 = {{"▓▓", "▓▓"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
+        String[][] shape3 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
         String[][] shape4 = {{"▓▓", "▓▓"}, {"▓▓", "▓▓"}};
-        String[][] shape5 = {{"░░", "░░", "▓▓"}, {"░░", "▓▓", "▓▓"}, {"░░", "▓▓", "░░"}};
-        String[][] shape6 = {{"░░", "▓▓", "▓▓"}, {"░░", "░░", "▓▓"}, {"░░", "░░", "▓▓"}};
+        String[][] shape5 = {{"░░", "▓▓"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
+        String[][] shape6 = {{"▓▓", "▓▓"}, {"░░", "▓▓"}, {"░░", "▓▓"}};
+        String[][] shape7 = {{"░░", "░░", "░░", "░░"}, {"▓▓", "▓▓", "▓▓", "▓▓"}};
+
 
         switch (a) {
             case 0:
@@ -100,7 +102,7 @@ public class Main {
                 shape = new String[][]{{"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}};
         }
 
-        return shape;
+        return shape7;
     }
 
     public static String[][] emptyField(int width, int height) {
