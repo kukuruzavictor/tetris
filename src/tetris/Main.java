@@ -22,26 +22,41 @@ public class Main {
         int centerOfFrame = frame[1].length / 2;
         int centerOfShape = shape[1].length / 2;
         int center = centerOfFrame - centerOfShape;
-        for (int s = 0; s < frame.length; s++) {
-            for (int f = 0; f < shape[1].length; f++) {
-                frame[s][center + f] = shape[shape.length - 1][f];
-            }
-            for (int w = 0; w < shape.length - 1; w++) {
-                if (s > w) {
-                    for (int f = 0; f < shape[1].length; f++) {
-                        frame[s - 1 - w][center + f] = shape[shape.length - 2 - w][f];
+        for (int frameRow = 0; frameRow < frame.length; frameRow++) {
+            if (checkGround(frame, shape, frameRow, center)) {
+                for (int f = 0; f < shape[1].length; f++) {
+                    // (IF) to exclude filling of existing frame-pixel ▓▓ by empty shape-pixel ░░
+                    if (shape[shape.length - 1][f].equals("▓▓")) {
+                        frame[frameRow][center + f] = shape[shape.length - 1][f];
                     }
                 }
-            }
-            // фігура пройшла весь шлях, далі лишається порожній рядок
-            if (s > shape.length - 1) {
-                for (int f = 0; f < shape[1].length; f++) {
-                    frame[s - shape.length][center + f] = "░░";
+                for (int w = 0; w < shape.length - 1; w++) {
+                    if (frameRow > w) {
+                        for (int f = 0; f < shape[1].length; f++) {
+                            // (IF) to exclude filling of existing frame-pixel (or shape-pixel) ▓▓ by empty shape-pixel ░░
+                            if (shape[shape.length - 2 - w][f].equals("▓▓") || (shape[shape.length - 2 - w][f].equals("░░") && shape[shape.length - 1 - w][f].equals("▓▓"))) {
+                                frame[frameRow - 1 - w][center + f] = shape[shape.length - 2 - w][f];
+                            }
+                        }
+                    }
                 }
+                // filling of empty row above the shape
+                if (frameRow > shape.length - 1) {
+                    for (int f = 0; f < shape[1].length; f++) {
+                        frame[frameRow - shape.length][center + f] = "░░";
+                    }
+                }
+                printFrame(frame);
             }
-            printFrame(frame);
         }
         return frame;
+    }
+
+    public static boolean checkGround(String[][] frame, String[][] shape, int frameRow, int center) {
+
+        // check distance to the ground or brick below
+
+        return true;
     }
 
     public static void printFrame(String[][] frame) throws InterruptedException {
@@ -62,13 +77,13 @@ public class Main {
 
         /*   1     2     0     3     4     5     6
          *               ▓▓
-         *   ▓▓    ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓
+         *   ▓▓    ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓
          *   ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓
-         *     ▓▓  ▓▓    ▓▓    ▓▓          ▓▓      ▓▓
+         *     ▓▓  ▓▓▓▓  ▓▓    ▓▓          ▓▓      ▓▓
          * */
         String[][] shape0 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
         String[][] shape1 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"░░", "▓▓"}};
-        String[][] shape2 = {{"▓▓", "▓▓"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
+        String[][] shape2 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "▓▓"}};
         String[][] shape3 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
         String[][] shape4 = {{"▓▓", "▓▓"}, {"▓▓", "▓▓"}};
         String[][] shape5 = {{"░░", "▓▓"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
@@ -99,10 +114,10 @@ public class Main {
                 shape = shape6;
                 break;
             default:
-                shape = new String[][]{{"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}, {"░░", "▓▓", "░░", "░░"}};
+                shape = shape0;
         }
 
-        return shape7;
+        return shape;
     }
 
     public static String[][] emptyField(int width, int height) {
