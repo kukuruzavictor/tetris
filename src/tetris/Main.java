@@ -12,6 +12,7 @@ public class Main {
 
         // patterns ░░ ▒▒ ▓▓ ▉▋ ▉▊ ▉▉
         String pixel = "▉▋";
+
         String[][] frame = emptyField(width, height);
         while (true) {
             frame = fallingRender(frame, shape());
@@ -22,8 +23,9 @@ public class Main {
         int centerOfFrame = frame[1].length / 2;
         int centerOfShape = shape[1].length / 2;
         int center = centerOfFrame - centerOfShape;
+        boolean test = true;
         for (int frameRow = 0; frameRow < frame.length; frameRow++) {
-            if (checkGround(frame, shape, frameRow, center)) {
+            if (isSpaceBelow(frame, shape, frameRow, center)) {
                 for (int f = 0; f < shape[1].length; f++) {
                     // (IF) to exclude filling of existing frame-pixel ▓▓ by empty shape-pixel ░░
                     if (shape[shape.length - 1][f].equals("▓▓")) {
@@ -47,15 +49,34 @@ public class Main {
                     }
                 }
                 printFrame(frame);
+            } else {
+                break;
             }
         }
         return frame;
     }
 
-    public static boolean checkGround(String[][] frame, String[][] shape, int frameRow, int center) {
-
-        // check distance to the ground or brick below
-
+    public static boolean isSpaceBelow(String[][] frame, String[][] shape, int frameRow, int center) {
+        int k = 0;
+        if (frameRow == frame.length) {
+            return false;
+        }
+        for (int i = 0; i < shape[1].length; i++) {
+            for (int j = 0; j < shape.length; j++) {
+                if (shape[shape.length - 1 - j][i].equals("░░")) {
+                    k++;
+                } else {
+                    break;
+                }
+            }
+            if (k > frameRow) {
+                k = frameRow;
+            }
+            if (frame[frameRow - k][center + i].equals("▓▓")) {
+                return false;
+            }
+            k = 0;
+        }
         return true;
     }
 
@@ -67,19 +88,20 @@ public class Main {
             }
             System.out.println();
         }
-        TimeUnit.MILLISECONDS.sleep(100);
+        TimeUnit.MILLISECONDS.sleep(50);
     }
 
 
     public static String[][] shape() {
-        int a = (int) (Math.random() * 7);
+
+        int a = (int) (Math.random() * 9);
         String[][] shape;
 
-        /*   1     2     0     3     4     5     6
-         *               ▓▓
-         *   ▓▓    ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓
-         *   ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓
-         *     ▓▓  ▓▓▓▓  ▓▓    ▓▓          ▓▓      ▓▓
+        /*   1     2     0     3     4     5     6     8
+         *               ▓▓                            ▓▓▓▓▓▓
+         *   ▓▓    ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓  ▓▓  ▓▓
+         *   ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓      ▓▓
+         *     ▓▓  ▓▓▓▓  ▓▓    ▓▓          ▓▓      ▓▓      ▓▓
          * */
         String[][] shape0 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
         String[][] shape1 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"░░", "▓▓"}};
@@ -89,7 +111,7 @@ public class Main {
         String[][] shape5 = {{"░░", "▓▓"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
         String[][] shape6 = {{"▓▓", "▓▓"}, {"░░", "▓▓"}, {"░░", "▓▓"}};
         String[][] shape7 = {{"░░", "░░", "░░", "░░"}, {"▓▓", "▓▓", "▓▓", "▓▓"}};
-
+        String[][] shape8 = {{"▓▓", "▓▓", "▓▓"}, {"▓▓", "░░", "▓▓"}, {"░░", "░░", "▓▓"}, {"░░", "░░", "▓▓"}};
 
         switch (a) {
             case 0:
@@ -113,6 +135,12 @@ public class Main {
             case 6:
                 shape = shape6;
                 break;
+            case 7:
+                shape = shape7;
+                break;
+            case 8:
+                shape = shape8;
+                break;
             default:
                 shape = shape0;
         }
@@ -128,5 +156,54 @@ public class Main {
             }
         }
         return field;
+    }
+
+    // NOT WORKS. ALGORITHM IS WRONG.
+    public static boolean isGroundPlaceOLD(String[][] frame, String[][] shape, int frameRow, int center) {
+        int cycle;
+        if (frameRow == frame.length) {
+            return false;
+        }
+        if (frameRow < shape.length) {
+            cycle = frameRow + 1;
+        } else {
+            cycle = shape.length;
+        }
+
+        for (int i = 0; i < cycle; i++) {
+            for (int j = 0; j < shape[1].length; j++) {
+                if (shape[shape.length - 1 - i][j].equals("▓▓") && frame[frameRow - i][center + j].equals("▓▓")) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    // NOT WORKS. ALGORITHM IS WRONG.
+    public static int checkGround(String[][] frame, String[][] shape, int frameRow, int center) {
+        int distance = 20;
+        for (int i = 0; i < shape[1].length; i++) {
+            int sh = 0;
+            int fr = 0;
+            for (int j = 0; j < shape.length - 1; j++) {
+                //shape distance
+                if (shape[shape.length - 1 - j][i].equals("░░")) {
+                    sh += 1;
+                }
+            }
+            for (int k = frameRow; k < frame.length; k++) {
+                // frame distance
+                if (frame[k][center + i].equals("░░")) {
+                    fr += 1;
+                } else {
+                    break;
+                }
+            }
+            if (fr + sh < distance) {
+                distance = sh + fr;
+            }
+        }
+        return distance;
     }
 }
