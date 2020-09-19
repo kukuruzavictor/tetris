@@ -8,125 +8,235 @@ import java.util.concurrent.TimeUnit;
 
 public class Tetris {
 
-    private int height;
-    private int width;
-    private int speed;
+    private int frameHeight;
+    private int frameWidth;
+    private int gameSpeed;
     private String pixel;
     private String noPixel;
     private String action;
     private String[][] frame;
     private String[][] shape;
-    private boolean startGame;
-
-    public Tetris() throws InterruptedException {
-        height = 20;
-        width = 10;
-        speed = 500; //minimum 40
-        pixel = "▓▓";
-        noPixel = "░░";
-        action = "";
-        frame = emptyFrame();
-        startGame = true;
-
-        KeyListener();
-
-        while (true) {
-            frame = fallingRender(frame, randomShape());
-        }
-    }
+    private int positionX;
+    private int positionY;
+    private int gameScore;
+    private boolean isGamePaused;
+    private boolean isGameEnded;
 
     public static void main(String[] args) throws InterruptedException {
         new Tetris();
     }
 
-    public String[][] fallingRender(String[][] frame, String[][] shape) throws InterruptedException {
-        int centerOfFrame = frame[1].length / 2;
-        int centerOfShape = shape[1].length / 2;
-        int center = centerOfFrame - centerOfShape;
-        for (int frameRow = 0; frameRow < frame.length; frameRow++) {
-            if (isSpaceBelow(frame, shape, frameRow, center)) {
-                for (int f = 0; f < shape[1].length; f++) {
-                    // (IF) to exclude filling of existing frame-pixel ▓▓ by empty shape-pixel ░░
-                    if (shape[shape.length - 1][f].equals(pixel)) {
-                        frame[frameRow][center + f] = shape[shape.length - 1][f];
-                    }
-                }
-                for (int w = 0; w < shape.length - 1; w++) {
-                    if (frameRow > w) {
-                        for (int f = 0; f < shape[1].length; f++) {
-                            // (IF) to exclude filling of existing frame-pixel (or shape-pixel) ▓▓ by empty shape-pixel ░░
-                            if (shape[shape.length - 2 - w][f].equals(pixel) || (shape[shape.length - 2 - w][f].equals(noPixel) && shape[shape.length - 1 - w][f].equals(pixel))) {
-                                frame[frameRow - 1 - w][center + f] = shape[shape.length - 2 - w][f];
-                            }
+    public Tetris() throws InterruptedException {
+        KeyListener();
+        frameHeight = 20;
+        frameWidth = 10;
+        gameSpeed = 500; //minimum 40
+        pixel = "▓▓";
+        noPixel = "░░";
+        action = "";
+        frame = emptyFrame();
+        gameScore = 0;
+        isGamePaused = false;
+
+        while (true) {
+            randomShape();
+            positionX = frameWidth / 2 - shape[0].length / 2; // default middle horizontal position of the shape
+            for (positionY = 0; positionY < frameHeight; positionY++) {
+                if (isSpaceBelow(positionY - 1)) {
+                    printFrame();
+                    action(); // check action request (left, right, rotate, down, start/pause)
+                    if (!isSpaceBelow(positionY)) {
+                        if (positionY == 0) {
+                            System.exit(0);
                         }
+                        combineFrame();
+                        checkFilledLines();
+                        break;
                     }
                 }
-                // filling of empty row above the shape
-                if (frameRow > shape.length - 1) {
-                    for (int f = 0; f < shape[1].length; f++) {
-                        frame[frameRow - shape.length][center + f] = noPixel;
-                    }
-                }
-                printFrame(frame);
-                action(); //check action request (left, right, rotate, down, pause)
-            } else {
-                break;
             }
         }
-        return frame;
     }
 
-    public boolean isSpaceBelow(String[][] frame, String[][] shape, int frameRow, int center) {
-        int k = 0;
-        if (frameRow == frame.length) {
-            return false;
-        }
-        for (int i = 0; i < shape[1].length; i++) {
-            for (int j = 0; j < shape.length; j++) {
-                if (shape[shape.length - 1 - j][i].equals(noPixel)) {
-                    k++;
+    public void checkFilledLines() {
+        int i = 0;
+        int pixelsInRow = 0;
+        for (int y = 0; y < frameHeight; y++) {
+            for (int x = 0; x < frameWidth; x++) {
+                if (frame[y][x].equals(pixel)) {
+                    pixelsInRow++;
                 } else {
+                    pixelsInRow = 0;
                     break;
                 }
+                if (pixelsInRow == frameWidth) {
+                    pixelsInRow = 0;
+                    i++;
+                    removeLine(y);
+                }
             }
-            if (k > frameRow) {
-                k = frameRow;
+        }
+        switch (i) {
+            case (1):
+                gameScore += 100;
+                break;
+            case (2):
+                gameScore += 300;
+                break;
+            case (3):
+                gameScore += 500;
+                break;
+            case (4):
+                gameScore += 800;
+                break;
+        }
+    }
+
+    public void removeLine(int y) {
+        for (int i = y; i > 0; i--) {
+            for (int j = 0; j < frameWidth; j++) {
+                frame[i][j] = frame[i - 1][j];
             }
-            if (frame[frameRow - k][center + i].equals(pixel)) {
-                return false;
+        }
+        for (int k = 0; k < frameWidth; k++) {
+            frame[0][k] = noPixel;
+        }
+    }
+
+    public void rotateShape() {
+        // rightSideIndex for case when the shape is getting out of right frameside due to rotation
+        int rightSideIndex;
+        rightSideIndex = frameWidth - positionX - shape.length;
+        if (rightSideIndex < 0) {
+            positionX += rightSideIndex;
+        }
+
+        String[][] rotatedShape = new String[shape[0].length][shape.length];
+        for (int y = 0; y < shape[0].length; y++) {
+            for (int x = 0; x < shape.length; x++) {
+                rotatedShape[y][x] = shape[x][shape[0].length - 1 - y];
             }
-            k = 0;
+        }
+        shape = rotatedShape;
+    }
+
+    public void combineFrame() {
+        for (int y = shape.length - 1; y >= 0; y--) {
+            for (int x = 0; x < shape[0].length; x++) {
+                if (shape[y][x].equals(pixel) && positionY + y - shape.length + 1 >= 0) {
+                    frame[positionY + y - shape.length + 1][positionX + x] = shape[y][x];
+                }
+            }
+        }
+    }
+
+    public void printFrame() {
+        System.out.print("\033\143");
+        int topIndex;
+        if (positionY >= shape.length - 1) {
+            topIndex = 0;
+        } else {
+            topIndex = (shape.length - 1) - positionY;
+        }
+        for (int y = 0; y < frameHeight; y++) {
+            for (int x = 0; x < frameWidth; x++) {
+                if (x == positionX && y == positionY + topIndex - shape.length + 1 && topIndex < shape.length) {
+                    for (int k = 0; k < shape[0].length; k++) {
+                        if (shape[topIndex][k].equals(pixel)) {
+                            System.out.print(shape[topIndex][k]);
+                        } else {
+                            System.out.print(frame[positionY + topIndex - shape.length + 1][positionX + k]);
+                        }
+                    }
+                    topIndex++;
+                    x += shape[0].length - 1;
+                } else {
+                    System.out.print(frame[y][x]);
+                }
+            }
+            System.out.println();
+        }
+        System.out.println("Score: " + gameScore);
+    }
+
+    public boolean isSpaceLeft() {
+        int topIndex;
+        if (positionX == 0) {
+            return false;
+        }
+        if (positionY >= shape.length - 1) {
+            topIndex = 0;
+        } else {
+            topIndex = (shape.length - 1) - positionY;
+        }
+        for (int y = topIndex; y < shape.length; y++) {
+            for (int x = 0; x < shape[0].length; x++) {
+                if (shape[y][x].equals(pixel) && frame[positionY - shape.length + 1 + y][positionX + x - 1].equals(pixel)) {
+                    return false;
+                }
+            }
         }
         return true;
     }
 
-    public void printFrame(String[][] frame) {
-        System.out.print("\033\143");
-        for (int i = 0; i < frame.length; i++) {
-            for (int j = 0; j < frame[i].length; j++) {
-                System.out.print(frame[i][j]);
-            }
-            System.out.println();
+    public boolean isSpaceRight() {
+        int topIndex;
+        if (positionX == frameWidth - 1 - shape[0].length + 1) {
+            return false;
         }
+        if (positionY >= shape.length - 1) {
+            topIndex = 0;
+        } else {
+            topIndex = (shape.length - 1) - positionY;
+        }
+        for (int y = topIndex; y < shape.length; y++) {
+            for (int x = 0; x < shape[0].length; x++) {
+                if (shape[y][x].equals(pixel) && frame[positionY - shape.length + 1 + y][positionX + x + 1].equals(pixel)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean isSpaceBelow(int positionY) {
+//        int posY = positionY;
+        int topIndex;
+        if (positionY == frameHeight - 1) {
+            return false;
+        }
+        if (positionY >= shape.length - 1) {
+            topIndex = 0;
+        } else {
+            topIndex = (shape.length - 1) - positionY - 1;
+        }
+        for (int y = topIndex; y < shape.length; y++) {
+            for (int x = 0; x < shape[0].length; x++) {
+                if (shape[y][x].equals(pixel) && frame[positionY - shape.length + 2 + y][positionX + x].equals(pixel)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public void printPause(String[][] frame) {
-        int centerX = width/2-3;
-        int centerY = height/2;
+        int centerX = frameWidth / 2 - 3;
+        int centerY = frameHeight / 2;
         System.out.print("\033\143");
         for (int i = 0; i < frame.length; i++) {
             for (int j = 0; j < frame[i].length; j++) {
                 if (i == centerY && j == centerX) {
                     System.out.print("  ");
-                } else if (i == centerY && j == centerX+1) {
+                } else if (i == centerY && j == centerX + 1) {
                     System.out.print("P ");
-                } else if (i == centerY && j == centerX+2) {
+                } else if (i == centerY && j == centerX + 2) {
                     System.out.print("A ");
-                } else if (i == centerY && j == centerX+3) {
+                } else if (i == centerY && j == centerX + 3) {
                     System.out.print("U ");
-                } else if (i == centerY && j == centerX+4) {
+                } else if (i == centerY && j == centerX + 4) {
                     System.out.print("S ");
-                } else if (i == centerY && j == centerX+5) {
+                } else if (i == centerY && j == centerX + 5) {
                     System.out.print("E ");
                 } else {
                     System.out.print(frame[i][j]);
@@ -134,6 +244,7 @@ public class Tetris {
             }
             System.out.println();
         }
+        System.out.println("Score: " + gameScore);
     }
 
     public void KeyListener() {
@@ -156,44 +267,74 @@ public class Tetris {
                 if (e.getKeyCode() == 27) {
                     System.exit(0);
                 }
-                if (e.getKeyCode() == 37 && startGame) {
+                if (e.getKeyCode() == 37 && !isGamePaused) {
                     action = "left";
                 }
-                if (e.getKeyCode() == 39 && startGame) {
+                if (e.getKeyCode() == 39 && !isGamePaused) {
                     action = "right";
                 }
-                if (e.getKeyCode() == 83 && !startGame) {
-                    startGame = true;
-                } else if (e.getKeyCode() == 83 && startGame) {
-                    startGame = false;
+                if (e.getKeyCode() == 32 && !isGamePaused) {
+                    action = "rotate";
+                }
+                if (e.getKeyCode() == 40 && !isGamePaused) {
+                    action = "down";
+                }
+                if (e.getKeyCode() == 83 && isGamePaused) {
+                    isGamePaused = false;
+                } else if (e.getKeyCode() == 83 && !isGamePaused) {
+                    isGamePaused = true;
                 }
             }
 
             @Override
             public void keyReleased(KeyEvent e) {
                 jLabel.setText(e.getKeyText(e.getKeyCode()));
+                if (e.getKeyCode() == 37 && !isGamePaused && action.equals("left")) {
+                    action = "";
+                }
+                if (e.getKeyCode() == 39 && !isGamePaused && action.equals("right")) {
+                    action = "";
+                }
+                if (e.getKeyCode() == 40 && !isGamePaused && action.equals("down")) {
+                    gameSpeed = 500;
+                    action = "";
+                }
+
             }
         });
     }
 
     public void action() throws InterruptedException {
         for (int i = 0; i < 10; i++) {
-            waiting(speed / 10);
+            waiting(gameSpeed / 10);
             // LEFT
             if (action.equals("left")) {
-                if (frame[0][0].equals(noPixel)) {
-                    frame[0][0] = pixel;
-                    action = "";
-                    printFrame(frame);
-                } else {
-                    frame[0][0] = noPixel;
-                    action = "";
-                    printFrame(frame);
+                if (isSpaceLeft()) {
+                    positionX -= 1;
                 }
+                printFrame();
             }
-            // PAUSE
+            //RIGHT
+            if (action.equals("right")) {
+                if (isSpaceRight()) {
+                    positionX += 1;
+                }
+                printFrame();
+            }
+            //ROTATE
+            if (action.equals("rotate")) {
+                rotateShape();
+                printFrame();
+                action = "";
+            }
+            //DOWN
+            if (action.equals("down")) {
+                int gameSpeedBuffer = gameSpeed;
+                gameSpeed = 20;
+            }
+            // PAUSE/START
             boolean isPausePrinted = false;
-            while (!startGame) {
+            while (isGamePaused) {
                 waiting(1);
                 if (!isPausePrinted) {
                     printPause(frame);
@@ -201,32 +342,47 @@ public class Tetris {
                     isPausePrinted = true;
                 }
             }
-            if (startGame && isPausePrinted) {
-                printFrame(frame);
+            if (!isGamePaused && isPausePrinted) {
+                printFrame();
             }
         }
     }
 
-    public String[][] randomShape() {
+    public String[][] emptyFrame() {
+        String[][] field = new String[frameHeight][frameWidth];
+        for (int i = 0; i < frameHeight; i++) {
+            for (int j = 0; j < frameWidth; j++) {
+                field[i][j] = noPixel;
+            }
+        }
+        return field;
+    }
 
-        int a = (int) (Math.random() * 9);
-        String[][] shape;
+    public void waiting(int milisecond) throws InterruptedException {
+        TimeUnit.MILLISECONDS.sleep(milisecond);
+    }
 
-        /*   1     2     0     3     4     5     6     8
-         *               ▓▓                            ▓▓▓▓▓▓
-         *   ▓▓    ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓  ▓▓  ▓▓
-         *   ▓▓▓▓  ▓▓    ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓      ▓▓
-         *     ▓▓  ▓▓▓▓  ▓▓    ▓▓          ▓▓      ▓▓      ▓▓
+    public void randomShape() {
+        int a = (int) (Math.random() * 14);
+        /*   0     1     2    3     4     5     6     7       8       9       10      11     12    test
+         *   ▓▓                                                                                    ▓▓▓▓▓▓
+         *   ▓▓   ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓  ▓▓▓▓▓▓    ▓▓▓▓  ▓▓▓▓      ▓▓    ▓▓▓▓   ▓▓    ▓▓  ▓▓
+         *   ▓▓   ▓▓▓▓  ▓▓    ▓▓▓▓  ▓▓▓▓  ▓▓▓▓    ▓▓    ▓▓      ▓▓      ▓▓    ▓▓▓▓▓▓  ▓▓     ▓▓▓▓      ▓▓
+         *   ▓▓     ▓▓  ▓▓▓▓  ▓▓          ▓▓      ▓▓    ▓▓    ▓▓▓▓      ▓▓▓▓    ▓▓    ▓▓▓▓             ▓▓
          * */
-        String[][] shape0 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "░░"}};
-        String[][] shape1 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"░░", "▓▓"}};
-        String[][] shape2 = {{"▓▓", "░░"}, {"▓▓", "░░"}, {"▓▓", "▓▓"}};
-        String[][] shape3 = {{"▓▓", "░░"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
-        String[][] shape4 = {{"▓▓", "▓▓"}, {"▓▓", "▓▓"}};
-        String[][] shape5 = {{"░░", "▓▓"}, {"▓▓", "▓▓"}, {"▓▓", "░░"}};
-        String[][] shape6 = {{"▓▓", "▓▓"}, {"░░", "▓▓"}, {"░░", "▓▓"}};
-        String[][] shape7 = {{"░░", "░░", "░░", "░░"}, {"▓▓", "▓▓", "▓▓", "▓▓"}};
-        String[][] shape8 = {{"▓▓", "▓▓", "▓▓"}, {"▓▓", "░░", "▓▓"}, {"░░", "░░", "▓▓"}, {"░░", "░░", "▓▓"}};
+        String[][] shape0 = {{pixel}, {pixel}, {pixel}, {pixel}};
+        String[][] shape1 = {{pixel, noPixel}, {pixel, pixel}, {noPixel, pixel}};
+        String[][] shape2 = {{noPixel, pixel}, {noPixel, pixel}, {pixel, pixel}};
+        String[][] shape3 = {{pixel, noPixel}, {pixel, pixel}, {pixel, noPixel}};
+        String[][] shape4 = {{pixel, pixel}, {pixel, pixel}};
+        String[][] shape5 = {{noPixel, pixel}, {pixel, pixel}, {pixel, noPixel}};
+        String[][] shape6 = {{pixel, pixel}, {noPixel, pixel}, {noPixel, pixel}};
+        String[][] shape7 = {{pixel, pixel, pixel}, {noPixel, pixel, noPixel}, {noPixel, pixel, noPixel}};
+        String[][] shape8 = {{noPixel, pixel, pixel}, {noPixel, pixel, noPixel}, {pixel, pixel, noPixel}};
+        String[][] shape9 = {{pixel, pixel, noPixel}, {noPixel, pixel, noPixel}, {noPixel, pixel, pixel}};
+        String[][] shape10 = {{noPixel, pixel, noPixel}, {pixel, pixel, pixel}, {noPixel, pixel, noPixel}};
+        String[][] shape11 = {{pixel, pixel}, {pixel, noPixel}, {pixel, pixel}};
+        String[][] shape12 = {{pixel, noPixel}, {pixel, pixel}};
 
         switch (a) {
             case 0:
@@ -256,23 +412,35 @@ public class Tetris {
             case 8:
                 shape = shape8;
                 break;
+            case 9:
+                shape = shape9;
+                break;
+            case 10:
+                shape = shape10;
+                break;
+            case 11:
+                shape = shape11;
+                break;
+            case 12:
+                shape = shape12;
+                break;
             default:
-                shape = shape0;
+                shape = shape2;
         }
-        return shape;
+        randomRotate();
     }
 
-    public String[][] emptyFrame() {
-        String[][] field = new String[height][width];
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                field[i][j] = noPixel;
+    public void randomRotate() {
+        int b = (int) (Math.random() * 3);
+        for (int k = 0; k <= b; k++) {
+            String[][] rotatedShape = new String[shape[0].length][shape.length];
+            for (int y = 0; y < shape[0].length; y++) {
+                for (int x = 0; x < shape.length; x++) {
+                    rotatedShape[y][x] = shape[x][shape[0].length - 1 - y];
+                }
             }
+            shape = rotatedShape;
         }
-        return field;
-    }
 
-    public void waiting(int milisecond) throws InterruptedException {
-        TimeUnit.MILLISECONDS.sleep(milisecond);
     }
 }
