@@ -20,7 +20,6 @@ public class Tetris {
     private int positionY;
     private int gameScore;
     private boolean isGamePaused;
-    private boolean isGameEnded;
 
     public static void main(String[] args) throws InterruptedException {
         new Tetris();
@@ -56,6 +55,57 @@ public class Tetris {
                 }
             }
         }
+    }
+
+    public boolean isRotationAvailable() {
+        String[][] rotatedShape = new String[shape[0].length][shape.length];
+        for (int y = 0; y < shape[0].length; y++) {
+            for (int x = 0; x < shape.length; x++) {
+                rotatedShape[y][x] = shape[x][shape[0].length - 1 - y];
+            }
+        }
+        int rotationIndex = Math.abs(shape.length - shape[0].length);
+        if (isSpaceForRotation(rotatedShape, positionX)) {
+            return true;
+        } else if (!isSpaceForRotation(rotatedShape, positionX) && rotationIndex == 0) {
+            return false;
+        } else if (!isSpaceForRotation(rotatedShape, positionX) && rotationIndex != 0) {
+            for (int i = 1; i <= rotationIndex; i++) {
+                if (positionX - i < 0) {
+                    return false;
+                }
+                if (isSpaceForRotation(rotatedShape, positionX - i)) {
+                    positionX -= i;
+                    return true;
+                }
+            }
+            for (int i = 1; i <= rotationIndex; i++) {
+                if (isSpaceForRotation(rotatedShape, positionX + i)) {
+                    positionX += i;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean isSpaceForRotation(String[][] rotatedShape, int positionX) {
+        int rightSideIndex;
+        rightSideIndex = frameWidth - positionX - shape.length;
+        if (rightSideIndex < 0) {
+            positionX += rightSideIndex;
+        }
+        for (int y = rotatedShape.length - 1; y >= 0; y--) {
+            for (int x = 0; x < rotatedShape[0].length; x++) {
+                if (positionY + y - rotatedShape.length + 1 < 0) {
+                    continue;
+                }
+                if (rotatedShape[y][x].equals(pixel) && frame[positionY + y - rotatedShape.length + 1][positionX + x].equals(pixel)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public void checkFilledLines() {
@@ -157,6 +207,9 @@ public class Tetris {
             System.out.println();
         }
         System.out.println("Score: " + gameScore);
+        System.out.println();
+        System.out.println("Be sure GAMEPAD window is active");
+
     }
 
     public boolean isSpaceLeft() {
@@ -200,7 +253,6 @@ public class Tetris {
     }
 
     public boolean isSpaceBelow(int positionY) {
-//        int posY = positionY;
         int topIndex;
         if (positionY == frameHeight - 1) {
             return false;
@@ -248,11 +300,12 @@ public class Tetris {
     }
 
     public void KeyListener() {
-        JFrame jFrame = new JFrame("Tetris");
+        JFrame jFrame = new JFrame("GAMEPAD");
+        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         jFrame.setSize(150, 150);
         jFrame.getContentPane().setBackground(Color.BLACK);
         JLabel jLabel = new JLabel("", JLabel.CENTER);
-        jLabel.setFont(new Font("Andale", Font.PLAIN, 13));
+        jLabel.setFont(new Font("Andale", Font.PLAIN, 30));
         jLabel.setForeground(Color.white);
         jFrame.add(jLabel);
         jFrame.setVisible(true);
@@ -323,13 +376,14 @@ public class Tetris {
             }
             //ROTATE
             if (action.equals("rotate")) {
-                rotateShape();
+                if (isRotationAvailable()) {
+                    rotateShape();
+                }
                 printFrame();
                 action = "";
             }
             //DOWN
             if (action.equals("down")) {
-                int gameSpeedBuffer = gameSpeed;
                 gameSpeed = 20;
             }
             // PAUSE/START
@@ -363,7 +417,7 @@ public class Tetris {
     }
 
     public void randomShape() {
-        int a = (int) (Math.random() * 14);
+        int a = (int) (Math.random() * 7);
         /*   0     1     2    3     4     5     6     7       8       9       10      11     12    test
          *   ▓▓                                                                                    ▓▓▓▓▓▓
          *   ▓▓   ▓▓    ▓▓    ▓▓    ▓▓▓▓    ▓▓  ▓▓▓▓  ▓▓▓▓▓▓    ▓▓▓▓  ▓▓▓▓      ▓▓    ▓▓▓▓   ▓▓    ▓▓  ▓▓
@@ -425,7 +479,7 @@ public class Tetris {
                 shape = shape12;
                 break;
             default:
-                shape = shape2;
+                shape = shape1;
         }
         randomRotate();
     }
@@ -441,6 +495,5 @@ public class Tetris {
             }
             shape = rotatedShape;
         }
-
     }
 }
