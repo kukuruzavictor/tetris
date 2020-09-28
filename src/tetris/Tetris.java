@@ -16,6 +16,7 @@ public class Tetris {
     private String action;
     private String[][] frame;
     private String[][] shape;
+    private String[][] nextShape;
     private int positionX;
     private int positionY;
     private int gameScore;
@@ -34,11 +35,14 @@ public class Tetris {
         noPixel = "░░";
         action = "";
         frame = emptyFrame();
+        shape = randomShape();
+        nextShape = randomShape();
         gameScore = 0;
         isGamePaused = false;
 
         while (true) {
-            randomShape();
+            shape = nextShape;
+            nextShape = randomShape();
             positionX = frameWidth / 2 - shape[0].length / 2; // default middle horizontal position of the shape
             for (positionY = 0; positionY < frameHeight; positionY++) {
                 if (isSpaceBelow(positionY - 1)) {
@@ -204,12 +208,12 @@ public class Tetris {
                     System.out.print(frame[y][x]);
                 }
             }
+            printNextShape(y);
             System.out.println();
         }
         System.out.println("Score: " + gameScore);
         System.out.println();
         System.out.println("Be sure GAMEPAD window is active");
-
     }
 
     public boolean isSpaceLeft() {
@@ -416,7 +420,8 @@ public class Tetris {
         TimeUnit.MILLISECONDS.sleep(milisecond);
     }
 
-    public void randomShape() {
+    public String[][] randomShape() {
+        String[][] shape;
         int a = (int) (Math.random() * 7);
         /*   0     1     2    3     4     5     6     7       8       9       10      11     12    test
          *   ▓▓                                                                                    ▓▓▓▓▓▓
@@ -481,10 +486,10 @@ public class Tetris {
             default:
                 shape = shape1;
         }
-        randomRotate();
+        return randomRotate(shape);
     }
 
-    public void randomRotate() {
+    public String[][] randomRotate(String[][] shape) {
         int b = (int) (Math.random() * 3);
         for (int k = 0; k <= b; k++) {
             String[][] rotatedShape = new String[shape[0].length][shape.length];
@@ -494,6 +499,20 @@ public class Tetris {
                 }
             }
             shape = rotatedShape;
+        }
+        return shape;
+    }
+
+    public void printNextShape(int index) {
+        if (index < nextShape.length) {
+            System.out.print(" ");
+            for (int i = 0; i < nextShape[0].length; i++) {
+                if (nextShape[index][i].equals(pixel)) {
+                    System.out.print(nextShape[index][i]);
+                } else {
+                    System.out.print("  ");
+                }
+            }
         }
     }
 }
